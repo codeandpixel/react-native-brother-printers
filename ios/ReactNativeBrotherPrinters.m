@@ -147,6 +147,7 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
     BRLMQLPrintSettings *qlSettings = [[BRLMQLPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:model];
 
     qlSettings.autoCut = true;
+    qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
 
     if (options[@"autoCut"]) {
         qlSettings.autoCut = [options[@"autoCut"] boolValue];
@@ -160,7 +161,8 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
 
 
     NSURL *url = [NSURL URLWithString:pdfStr];
-    BRLMPrintError *printError = [printerDriver printPDFWithURL:url settings:qlSettings];
+    BRLMPrintError *printError = [printerDriver printPDFWithURL:url settings:qlSettings]
+    [printerDriver closeChannel];
 
     if (printError.code != BRLMPrintErrorCodeNoError) {
         NSLog(@"Error - Print Image: %@", printError);
@@ -173,8 +175,6 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
 
         resolve(Nil);
     }
-
-    [printerDriver closeChannel];
 }
 
 -(void)didFinishSearch:(id)sender

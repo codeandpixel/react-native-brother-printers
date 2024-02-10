@@ -6,7 +6,6 @@
   "main": "index.js",
   "files": [
     "README.md",
-    "android",
     "index.js",
     "ios",
     "react-native-brother-printers.podspec"
