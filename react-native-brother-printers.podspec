@@ -11,20 +11,22 @@ Pod::Spec.new do |s|
   s.description  = <<-DESC
                   The iOS portion of the wrapper for using brother printers with react native
                    DESC
-  s.homepage     = "https://github.com/avery246813579/react-native-brother-printers"
+  s.homepage     = "https://github.com/codeandpixel/react-native-brother-printers"
   # brief license entry:
   s.license      = "MIT"
   # optional - use expanded license entry instead:
   # s.license    = { :type => "MIT", :file => "LICENSE" }
   s.authors      = { "Your Name" => "avery@dripos.com" }
-  s.platforms    = { :ios => "9.0" }
-  s.source       = { :git => "https://github.com/avery246813579/react-native-brother-printers.git", :tag => "#{s.version}" }
+  s.platforms    = { :ios => "12.0" }
+  s.source       = { :git => "https://github.com/codeandpixel/react-native-brother-printers.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,c,cc,cpp,m,mm,swift,plist}"
   s.requires_arc = true
   s.resources = 'ios/**/*.plist'
 
   s.dependency "React"
+  # s.dependency "BRLMPrinterKit", "~> 4.0.0"
+  # s.dependency "BRLMPrinterKitSDK"
   s.dependency "BRLMPrinterKit"
 end
 

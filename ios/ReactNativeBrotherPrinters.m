@@ -32,10 +32,10 @@ RCT_REMAP_METHOD(discoverPrinters, discoverOptions:(NSDictionary *)options resol
     dispatch_async(dispatch_get_main_queue(), ^{
         NSLog(@"Called the function");
 
-        _brotherDeviceList = [[NSMutableArray alloc] initWithCapacity:0];
+        self->_brotherDeviceList = [[NSMutableArray alloc] initWithCapacity:0];
 
-        _networkManager = [[BRPtouchNetworkManager alloc] init];
-        _networkManager.delegate = self;
+        self->_networkManager = [[BRPtouchNetworkManager alloc] init];
+        self->_networkManager.delegate = self;
 
         NSString *path = [[NSBundle mainBundle] pathForResource:@"PrinterList" ofType:@"plist"];
 
@@ -43,18 +43,18 @@ RCT_REMAP_METHOD(discoverPrinters, discoverOptions:(NSDictionary *)options resol
             NSDictionary *printerDict = [NSDictionary dictionaryWithContentsOfFile:path];
             NSArray *printerList = [[NSArray alloc] initWithArray:printerDict.allKeys];
 
-            [_networkManager setPrinterNames:printerList];
+            [self->_networkManager setPrinterNames:printerList];
         } else {
             NSLog(@"Could not find PrinterList.plist");
         }
 
         //    Start printer search
-        int response = [_networkManager startSearch: 5.0];
+        int response = [self->_networkManager startSearch: 5.0];
 
         if (response == RET_TRUE) {
             resolve(Nil);
         } else {
-            reject(DISCOVER_READERS_ERROR, @"A problem occured when trying to execute discoverPrinters", Nil);
+            reject(DISCOVER_READERS_ERROR, @"A problem occurred when trying to execute discoverPrinters", Nil);
         }
     });
 }
@@ -120,6 +120,56 @@ RCT_REMAP_METHOD(printImage, deviceInfo:(NSDictionary *)device printerUri: (NSSt
         reject(PRINT_ERROR, @"There was an error trying to print the image", error);
     } else {
         NSLog(@"Success - Print Image");
+
+        resolve(Nil);
+    }
+
+    [printerDriver closeChannel];
+}
+
+RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSString *)pdfStr printPdfOptions:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSLog(@"Called the printPdf function");
+    BRPtouchDeviceInfo *deviceInfo = [self deserializeDeviceInfo:device];
+
+    BRLMChannel *channel = [[BRLMChannel alloc] initWithWifiIPAddress:deviceInfo.strIPAddress];
+
+    BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
+    if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
+        driverGenerateResult.driver == nil) {
+        NSLog(@"%@", @(driverGenerateResult.error.code));
+        return;
+    }
+
+    BRLMPrinterDriver *printerDriver = driverGenerateResult.driver;
+
+    BRLMPrinterModel model = [BRLMPrinterClassifier transferEnumFromString:deviceInfo.strModelName];
+    BRLMQLPrintSettings *qlSettings = [[BRLMQLPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:model];
+
+    qlSettings.autoCut = true;
+
+    if (options[@"autoCut"]) {
+        qlSettings.autoCut = [options[@"autoCut"] boolValue];
+    }
+
+    if (options[@"labelSize"]) {
+        qlSettings.labelSize = [options[@"labelSize"] intValue];
+    }
+
+    NSLog(@"Auto Cut: %@, Label Size: %@", options[@"autoCut"], options[@"labelSize"]);
+
+
+    NSURL *url = [NSURL URLWithString:pdfStr];
+    BRLMPrintError *printError = [printerDriver printPDFWithURL:url settings:qlSettings];
+
+    if (printError.code != BRLMPrintErrorCodeNoError) {
+        NSLog(@"Error - Print Image: %@", printError);
+
+        NSError* error = [NSError errorWithDomain:@"com.react-native-brother-printers.rn" code:1 userInfo:[NSDictionary dictionaryWithObject:printError.description forKey:NSLocalizedDescriptionKey]];
+
+        reject(PRINT_ERROR, @"There was an error trying to print the pdf", error);
+    } else {
+        NSLog(@"Success - Print pdf");
 
         resolve(Nil);
     }

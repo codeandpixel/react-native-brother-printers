@@ -99,7 +99,7 @@ const {
   discoverPrinters: _discoverPrinters,
   pingPrinter: _pingPrinter,
   printImage: _printImage,
-  printPDF: _printPDF,
+  printPdf: _printPdf,
 } = ReactNativeBrotherPrinters;
 
 /**
@@ -145,9 +145,12 @@ export async function printImage(device, uri, params = {}) {
   return _printImage(device, uri, params);
 }
 
-// export async function printPDF(device, uri, params = {}) {
-//   return _printPDF(device, uri, params);
-// }
+export async function printPdf(device, uri, params = {}) {
+  if(!params.labelSize) {
+    return new Error('Label size must be given when printing a label to PDF');
+  }
+  return _printPdf(device, uri, params);
+}
 
 const listeners = new NativeEventEmitter(ReactNativeBrotherPrinters);
 
