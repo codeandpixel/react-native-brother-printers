@@ -26,7 +26,7 @@ Pod::Spec.new do |s|
 
   s.dependency "React"
   # s.dependency "BRLMPrinterKit", "~> 4.0.0"
-  # s.dependency "BRLMPrinterKitSDK"
-  s.dependency "BRLMPrinterKit"
+  s.dependency "BRLMPrinterKitSDK"
+#   s.dependency "BRLMPrinterKit"
 end
 
