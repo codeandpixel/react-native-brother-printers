@@ -1,6 +1,6 @@
 # react-native-brother-printers
 
-React Native Brother Printers is a react-native module that will allow you to interact with the brother printers. 
+React Native Brother Printers is a react-native module that will allow you to interact with the brother printers with iOS. 
 
 ## Getting started
 
@@ -10,18 +10,13 @@ or
 
 `$ yarn add @codeandpixel/react-native-brother-printers`
 
-or if using expo
+or if using expo (must be using prebuild, see [https://docs.expo.dev/workflow/prebuild/](https://docs.expo.dev/workflow/prebuild) for more information on prebuilds)
 
-`$ npx expo install @codeandpixel/react-native-brother-printers`
-`$ npx expo prebuild --clean -p ios`
-
-### Mostly automatic installation
-
-`$ cd ios;pod install`
-
-or if you are using React Native before version 0.60, 
-
-`$ react-native link react-native-brother-printers`
+```
+npx expo install @codeandpixel/react-native-brother-printers
+npx expo prebuild --clean -p ios
+npx expo run:ios
+```
 
 ## Usage
 
