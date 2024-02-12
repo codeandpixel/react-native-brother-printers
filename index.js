@@ -164,9 +164,6 @@ export async function printImage(device, uri, params = {}) {
  * @param params.autoCut            Boolean if the printer should auto cut the receipt/label
  * @param params.labelSize          Int Label size that we are printing with
  * @param params.printOrientation   One of [Portrait/Landscape] Print orientation
- * param params.printQuality Boolean if the printer should print in high quality
- * @param params.highResolution    Boolean if the printer should print in high resolution
- * @param params.isHalftoneErrorDiffusion
  *
  * @return {Promise<*>}
  */
@@ -175,17 +172,6 @@ export async function printPdf(device, uri, params = {}) {
     return new Error('Label size must be given when printing a label to PDF');
   }
   return ReactNativeBrotherPrinters?.printPdf(device, uri, params);
-}
-
-/**
- *
- * @param device
- * @param data
- * @param params
- * @returns {Promise<*>}
- */
-export async function printRaw(device, data, params = {}) {
-  return ReactNativeBrotherPrinters?.printRaw(device, data, params);
 }
 
 let listeners;

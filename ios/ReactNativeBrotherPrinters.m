@@ -227,16 +227,19 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
     BRLMPrinterModel model = [BRLMPrinterClassifier transferEnumFromString:deviceInfo.strModelName];
     BRLMQLPrintSettings *qlSettings = [[BRLMQLPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:model];
 
-    qlSettings.autoCut = true;
-    qlSettings.scaleMode = BRLMPrintSettingsScaleModeScaleValue;
-
-    if (options[@"autoCut"]) {
-        qlSettings.autoCut = [options[@"autoCut"] boolValue];
-    }
-
+    // Setup the print settings
     if (options[@"labelSize"]) {
         qlSettings.labelSize = [options[@"labelSize"] intValue];
     }
+
+    qlSettings.autoCut = options[@"autoCut"] ? [options[@"autoCut"] boolValue] : YES;
+    qlSettings.resolution = BRLMPrintSettingsResolutionHigh;
+    if (qlSettings.labelSize == BRLMQLPrintSettingsLabelSizeRollW62RB) {
+        qlSettings.biColorRedEnhancement = 10;
+    }
+
+    qlSettings.halftone = BRLMPrintSettingsHalftonePatternDither;
+    qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
 
     // printOrientation
     if (options[@"printOrientation"]) {
@@ -247,33 +250,9 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
             qlSettings.printOrientation = BRLMPrintSettingsOrientationLandscape;
             NSLog(@"Landscape is enabled");
         } else {
-            NSLog(@"Auto is enabled");
+            NSLog(@"Automatic orientation is enabled");
         }
     }
-
-    if(options[@"printQuality"]) {
-        if ([options[@"printQuality"] boolValue]) {
-            qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
-            NSLog(@"High Quality is enabled");
-        } else {
-            qlSettings.printQuality = BRLMPrintSettingsPrintQualityFast;
-            NSLog(@"High Quality is disabled");
-        }
-    }
-
-    // resolution
-    if(options[@"highResolution"]) {
-        if ([options[@"resolution"] boolValue]) {
-            qlSettings.resolution = BRLMPrintSettingsResolutionHigh;
-            NSLog(@"High Resolution is enabled");
-        } else {
-            NSLog(@"Low Resolution is enabled");
-        }
-    }
-
-    // Log all the qlSettings
-    NSLog(@"Auto Cut: %@, Label Size: %@", options[@"autoCut"], options[@"labelSize"]);
-
 
     NSURL *url = [NSURL URLWithString:pdfStr];
     BRLMPrintError *printError = [printerDriver printPDFWithURL:url settings:qlSettings];
