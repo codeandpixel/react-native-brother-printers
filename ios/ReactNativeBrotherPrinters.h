@@ -3,6 +3,7 @@
 #import <React/RCTBridgeModule.h>
 #import <BRLMPrinterKit/BRPtouchNetworkManager.h>
 #import <BRLMPrinterKit/BRLMPrinterKit.h>
+#import <BRLMPrinterKit/BRPtouchBluetoothManager.h>
 #import <React/RCTEventEmitter.h>
 
 @interface ReactNativeBrotherPrinters : RCTEventEmitter <RCTBridgeModule, BRPtouchNetworkDelegate> {

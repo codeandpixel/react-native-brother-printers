@@ -9,6 +9,8 @@ NSString *const DISCOVER_READERS_ERROR = @"DISCOVER_READERS_ERROR";
 NSString *const DISCOVER_READER_ERROR = @"DISCOVER_READER_ERROR";
 NSString *const PRINT_ERROR = @"PRINT_ERROR";
 NSString *const STATUS_ERROR = @"STATUS_ERROR";
+NSSString *const PING_PRINTER_ERROR = @"PING_PRINTER_ERROR";
+NSString *const NO_BT_PRINTER_FOUND = @"NO_BLUETOOTHPRINTER_FOUND";
 
 RCT_EXPORT_MODULE()
 
@@ -59,6 +61,50 @@ RCT_REMAP_METHOD(discoverPrinters, discoverOptions:(NSDictionary *)options resol
         }
     });
 }
+
+RCT_REMAP_METHOD(discoverBluetoothPrinters, btDiscoverOptions:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSLog(@"Starting Bluetooth printer discovery");
+
+        // Start the Bluetooth printer search
+        NSArray<BRLMChannel *> *channels = [self startSearchBluetoothPrinter];
+
+        // Check if any printers were found
+        if (channels.count > 0) {
+            // Create an array to hold the printer information
+            NSMutableArray *printerInfos = [NSMutableArray array];
+
+            for (BRLMChannel *channel in channels) {
+                // For each channel, retrieve the printer information
+                NSMutableDictionary<BRLMChannelExtraInfoKey*, NSString*> *extraInfo = channel.extraInfo;
+
+                // Add printer info to the array (customize this part as needed)
+                NSString *printerName = extraInfo[BRLMChannelExtraInfoKeyModelName];
+                NSString *modelName = extraInfo[BRLMChannelExtraInfoKeyModelName];
+                NSString *serialNumber = extraInfo[BRLMChannelExtraInfoKeySerialNumber];
+
+                NSDictionary *printerInfo = @{
+                    @"printerName": printerName ?: @"Unknown",
+                    @"modelName": modelName ?: @"Unknown",
+                    @"serialNumber": serialNumber ?: @"Unknown"
+                };
+                [printerInfos addObject:printerInfo];
+            }
+
+            // Resolve the promise with the list of printers
+            resolve(printerInfos);
+        } else {
+            // If no printers were found, reject the promise
+            reject(@"NO_PRINTERS_FOUND", @"No Bluetooth printers were found", nil);
+        }
+    });
+}
+
+- (NSArray<BRLMChannel *> *)startSearchBluetoothPrinter {
+    return [BRLMPrinterSearcher startBluetoothSearch].channels;
+}
+
 
 RCT_REMAP_METHOD(pingPrinter, printerAddress:(NSString *)ip resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
