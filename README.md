@@ -197,3 +197,7 @@ const result = await printPdf(
     },
 );
 ```
+
+### Useful Links
+
+- [Brother SDK](https://support.brother.com/g/s/es/htmldoc/mobilesdk/)
