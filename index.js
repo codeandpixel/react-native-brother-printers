@@ -128,7 +128,7 @@ export async function discoverPrinters(params = {}) {
  * @returns {Promise<*>}
  */
 export async function discoverBluetoothPrinters() {
-    return ReactNativeBrotherPrinters?.discoverBluetoothPrinters();
+  return ReactNativeBrotherPrinters?.discoverBluetoothPrinters();
 }
 
 /**

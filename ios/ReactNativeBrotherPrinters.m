@@ -9,8 +9,7 @@ NSString *const DISCOVER_READERS_ERROR = @"DISCOVER_READERS_ERROR";
 NSString *const DISCOVER_READER_ERROR = @"DISCOVER_READER_ERROR";
 NSString *const PRINT_ERROR = @"PRINT_ERROR";
 NSString *const STATUS_ERROR = @"STATUS_ERROR";
-NSSString *const PING_PRINTER_ERROR = @"PING_PRINTER_ERROR";
-NSString *const NO_BT_PRINTER_FOUND = @"NO_BLUETOOTHPRINTER_FOUND";
+NSString *const BT_SEARCH_ERROR = @"BT_SEARCH_ERROR";
 
 RCT_EXPORT_MODULE()
 
@@ -27,6 +26,7 @@ RCT_EXPORT_MODULE()
         @"onBrotherLog",
 
         @"onDiscoverPrinters",
+        @"onDiscoverBluetoothPrinters"
     ];
 }
 
@@ -62,53 +62,51 @@ RCT_REMAP_METHOD(discoverPrinters, discoverOptions:(NSDictionary *)options resol
     });
 }
 
-RCT_REMAP_METHOD(discoverBluetoothPrinters, btDiscoverOptions:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
-{
+RCT_REMAP_METHOD(discoverBluetoothPrinters,
+                 startSearchWithResolver:(RCTPromiseResolveBlock)resolve
+                 rejecter:(RCTPromiseRejectBlock)reject) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSLog(@"Starting Bluetooth printer discovery");
+        BRLMPrinterSearchResult *searcher = [BRLMPrinterSearcher startBluetoothSearch];
+        NSLog(@"%@", searcher.channels);
+        self->_brotherBluetoothDeviceList = [[NSMutableArray alloc] initWithCapacity:0];
 
-        // Start the Bluetooth printer search
-        NSArray<BRLMChannel *> *channels = [self startSearchBluetoothPrinter];
+        NSMutableArray *printerInfos = [NSMutableArray array];
+        for (BRLMChannel *channel in searcher.channels) {
+                    NSLog(@"FOUND BT PRINTER");
+                    // For each channel, retrieve the printer information
+                    NSMutableDictionary<BRLMChannelExtraInfoKey*, NSString*> *extraInfo = channel.extraInfo;
 
-        // Check if any printers were found
-        if (channels.count > 0) {
-            // Create an array to hold the printer information
-            NSMutableArray *printerInfos = [NSMutableArray array];
+                    // Add printer info to the array (customize this part as needed)
+                    NSString *printerName = extraInfo[BRLMChannelExtraInfoKeyModelName];
+                    NSString *modelName = extraInfo[BRLMChannelExtraInfoKeyModelName];
+                    NSString *serialNumber = extraInfo[BRLMChannelExtraInfoKeySerialNumber];
+                    // Assign channelType to BluetoothMFi
+                    NSString *channelType = @"BluetoothMFi";
 
-            for (BRLMChannel *channel in channels) {
-                // For each channel, retrieve the printer information
-                NSMutableDictionary<BRLMChannelExtraInfoKey*, NSString*> *extraInfo = channel.extraInfo;
+                                NSDictionary *printerInfo = @{
+                                    @"printerName": printerName ?: @"Unknown",
+                                    @"modelName": modelName ?: @"Unknown",
+                                    @"serialNumber": serialNumber ?: @"Unknown",
+                                    @"channelType": channelType ?: @"Unknown"
+                                };
+                    [printerInfos addObject:printerInfo];
 
-                // Add printer info to the array (customize this part as needed)
-                NSString *printerName = extraInfo[BRLMChannelExtraInfoKeyModelName];
-                NSString *modelName = extraInfo[BRLMChannelExtraInfoKeyModelName];
-                NSString *serialNumber = extraInfo[BRLMChannelExtraInfoKeySerialNumber];
-
-                NSDictionary *printerInfo = @{
-                    @"printerName": printerName ?: @"Unknown",
-                    @"modelName": modelName ?: @"Unknown",
-                    @"serialNumber": serialNumber ?: @"Unknown"
-                };
-                [printerInfos addObject:printerInfo];
-            }
-
-            // Resolve the promise with the list of printers
-            resolve(printerInfos);
-        } else {
-            // If no printers were found, reject the promise
-            reject(@"NO_PRINTERS_FOUND", @"No Bluetooth printers were found", nil);
-        }
+                }
+        NSLog(@"%@", printerInfos);
+        if (searcher.channels.count == 0) {
+                        NSString *errorDescription = [NSString stringWithFormat:@"Error: %@", searcher.error];
+                        reject(@"BT_SEARCH_ERROR", errorDescription, nil);
+                    } else {
+                        // trigger the didFinishSearch method
+                        [self sendEventWithName:@"onDiscoverBluetoothPrinters" body:printerInfos];
+                        resolve(printerInfos);
+                    }
     });
 }
 
-- (NSArray<BRLMChannel *> *)startSearchBluetoothPrinter {
-    return [BRLMPrinterSearcher startBluetoothSearch].channels;
-}
-
-
-RCT_REMAP_METHOD(pingPrinter, printerAddress:(NSString *)ip resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_REMAP_METHOD(pingPrinter, printerAddress:(NSString *)deviceInfo:(NSDictionary *)device resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-    BRLMChannel *channel = [[BRLMChannel alloc] initWithWifiIPAddress:ip];
+    BRLMChannel *channel = [self fetchCurrentChannelWithPrinterInfo:device];
 
     BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
     if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
@@ -131,9 +129,8 @@ RCT_REMAP_METHOD(pingPrinter, printerAddress:(NSString *)ip resolver:(RCTPromise
 RCT_REMAP_METHOD(getPrinterStatus, deviceInfo:(NSDictionary *)device resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSLog(@"Called the getPrinterStatus function");
-    BRPtouchDeviceInfo *deviceInfo = [self deserializeDeviceInfo:device];
 
-    BRLMChannel *channel = [[BRLMChannel alloc] initWithWifiIPAddress:deviceInfo.strIPAddress];
+    BRLMChannel *channel = [self fetchCurrentChannelWithPrinterInfo:device];
 
     BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
     if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
@@ -177,8 +174,7 @@ RCT_REMAP_METHOD(printImage, deviceInfo:(NSDictionary *)device printerUri: (NSSt
 {
     NSLog(@"Called the printImage function");
     BRPtouchDeviceInfo *deviceInfo = [self deserializeDeviceInfo:device];
-
-    BRLMChannel *channel = [[BRLMChannel alloc] initWithWifiIPAddress:deviceInfo.strIPAddress];
+    BRLMChannel *channel = [self fetchCurrentChannelWithPrinterInfo:device];
 
     BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
     if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
@@ -258,8 +254,7 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
 {
     NSLog(@"Called the printPdf function");
     BRPtouchDeviceInfo *deviceInfo = [self deserializeDeviceInfo:device];
-
-    BRLMChannel *channel = [[BRLMChannel alloc] initWithWifiIPAddress:deviceInfo.strIPAddress];
+    BRLMChannel *channel = [self fetchCurrentChannelWithPrinterInfo:device];
 
     BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
     if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
@@ -317,6 +312,28 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
     }
 }
 
+- (BRLMChannel *)fetchCurrentChannelWithPrinterInfo:(NSObject *)printerInfo {
+
+    // If we have a channelType set, and it's channelType is BluetoothMFi, use the serial number and init the initWithBluetoothSerialNumber method
+    if ([printerInfo isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *printerInfoDict = (NSDictionary *)printerInfo;
+        NSString *channelType = [printerInfoDict objectForKey:@"channelType"];
+        NSString *serialNumber = [printerInfo valueForKey:@"serialNumber"];
+
+        if ([channelType isEqualToString:@"BluetoothMFi"] && serialNumber != nil) {
+            return [[BRLMChannel alloc] initWithBluetoothSerialNumber:serialNumber];
+        }
+    }
+
+    // Otherwise default to using the IP address and init the initWithWifiIPAddress method
+    NSDictionary *printerInfoDict = (NSDictionary *)printerInfo;
+    NSString *ipAddress = [printerInfoDict objectForKey:@"ipAddress"];
+    return [[BRLMChannel alloc] initWithWifiIPAddress:ipAddress];
+}
+
+
+
+
 -(void)didFinishSearch:(id)sender
 {
     NSLog(@"didFinishedSearch");
@@ -337,8 +354,14 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
     }
 
     [self sendEventWithName:@"onDiscoverPrinters" body:_serializedArray];
-
     return;
+}
+
+- (NSDictionary *) serializeConnectionInfo:(BRLMChannel *)channel {
+    return @{
+        @"channelType": @(channel.channelType),
+        @"extraInfo": channel.extraInfo,
+    };
 }
 
 - (NSDictionary *) serializeDeviceInfo:(BRPtouchDeviceInfo *)device {
