@@ -104,6 +104,8 @@ Or into your eas.json file
 }
 ```
 
+_Special thanks to [Will](https://github.com/wjlafrance) for remembering the magic trick to get this working!_
+
 ### Printing an image
 To print an image, using the `printImage` function, with the first parameter being the printer found during discover,
 the second being the uri of the image you want to print, and the third being an objective that contains the label size.
