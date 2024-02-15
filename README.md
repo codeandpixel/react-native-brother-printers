@@ -80,6 +80,10 @@ const brotherPrinterSelected = (value) => {
 ### Warning: Remember to add the following to your Info.plist file
 _Special fun, the UISupportedExternalAccessoryProtocols is required for the app to be able to connect to the printer over bluetooth, and apparently no one decided to document it anywhere_
 
+Also of note, in order to get your app approved by Apple, you must have approval to use the protocol: com.brother.ptcbp (if you're using Bluetooth).  The form can be found on the [Brother SDK](https://support.brother.com/g/s/es/dev/en/mobilesdk/download/index.html?c=eu_ot&lang=en&navi=offall&comple=on&redirect=on#iphone) page.  Look for the link for "iOS App Approval Process" and fill out the form.
+
+If you're NOT using bluetooth, you should remove the UISupportedExternalAccessoryProtocols from the info.plist file or Apple will require Brother approval anyway.
+
 ```xml
 <key>NSBluetoothAlwaysUsageDescription</key>
 <string>$(PRODUCT_NAME) uses Bluetooth to discover and connect to printers</string>
