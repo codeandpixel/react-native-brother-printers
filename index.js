@@ -124,6 +124,14 @@ export async function discoverPrinters(params = {}) {
 }
 
 /**
+ * Discovers bluetooth printers
+ * @returns {Promise<*>}
+ */
+export async function discoverBluetoothPrinters() {
+  return ReactNativeBrotherPrinters?.discoverBluetoothPrinters();
+}
+
+/**
  * Checks if a reader is discoverable
  *
  * @param ip

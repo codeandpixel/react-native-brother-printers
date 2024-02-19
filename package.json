@@ -1,8 +1,8 @@
 {
   "name": "react-native-brother-printers",
   "title": "React Native Brother Printers",
-  "version": "0.0.5",
-  "description": "A package that allows you to printer with brother printers",
+  "version": "0.1.1",
+  "description": "A package that allows you to print to wifi or bluetooth brother printers",
   "main": "index.js",
   "files": [
     "README.md",
