@@ -114,7 +114,7 @@ export const LabelNames = [
  * Starts the discovery process for brother printers
  *
  * @param params
- * @param params.V6             If we should searching using IP v6.
+ * @param params.V6             If we should search using IP v6.
  * @param params.printerName    If we should name the printer something specific.
  *
  * @return {Promise<void>}
@@ -152,6 +152,7 @@ export async function pingPrinter(ip) {
  * @param params.labelSize          Label size that we are printing with
  * @param params.isHighQuality
  * @param params.isHalftoneErrorDiffusion
+ * @param params.skipStatusCheck    Boolean if we should skip the status check
  *
  * @return {Promise<*>}
  */
@@ -172,6 +173,7 @@ export async function printImage(device, uri, params = {}) {
  * @param params.autoCut            Boolean if the printer should auto cut the receipt/label
  * @param params.labelSize          Int Label size that we are printing with
  * @param params.printOrientation   One of [Portrait/Landscape] Print orientation
+ * @param params.skipStatusCheck    Boolean if we should skip the status check
  *
  * @return {Promise<*>}
  */

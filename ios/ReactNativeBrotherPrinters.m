@@ -188,37 +188,36 @@ RCT_REMAP_METHOD(printImage, deviceInfo:(NSDictionary *)device printerUri: (NSSt
     BRLMPrinterModel model = [BRLMPrinterClassifier transferEnumFromString:deviceInfo.strModelName];
     BRLMQLPrintSettings *qlSettings = [[BRLMQLPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:model];
 
-    qlSettings.autoCut = true;
-
-    if (options[@"autoCut"]) {
-        qlSettings.autoCut = [options[@"autoCut"] boolValue];
-    }
-
+    // Setup the print settings
     if (options[@"labelSize"]) {
         qlSettings.labelSize = [options[@"labelSize"] intValue];
     }
 
-    if (options[@"isHighQuality"]) {
-        if ([options[@"isHighQuality"] boolValue]) {
-            qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
-            NSLog(@"High Quality is enabled");
-        } else {
-            qlSettings.printQuality = BRLMPrintSettingsPrintQualityFast;
-            NSLog(@"High Quality is disabled");
-        }
+    if (options[@"skipStatusCheck"]) {
+        qlSettings.skipStatusCheck = [options[@"skipStatusCheck"] boolValue];
     }
 
-    if (options[@"isHalftoneErrorDiffusion"]) {
-        if ([options[@"isHalftoneErrorDiffusion"] boolValue]) {
-            qlSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;
-            NSLog(@"Error Diffusion is enabled");
-        } else {
-            qlSettings.halftone = BRLMPrintSettingsHalftoneThreshold;
-            NSLog(@"Error Diffusion is disabled");
-        }
+    qlSettings.autoCut = options[@"autoCut"] ? [options[@"autoCut"] boolValue] : YES;
+
+    qlSettings.halftone = BRLMPrintSettingsHalftonePatternDither;
+    if (qlSettings.labelSize == BRLMQLPrintSettingsLabelSizeRollW62RB) {
+        qlSettings.resolution = BRLMPrintSettingsResolutionHigh;
+        qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
+        qlSettings.biColorRedEnhancement = 10;
     }
 
-    NSLog(@"Auto Cut: %@, Label Size: %@", options[@"autoCut"], options[@"labelSize"]);
+    // printOrientation
+    if (options[@"printOrientation"]) {
+        if ([options[@"printOrientation"] isEqualToString:@"Portrait"]) {
+            qlSettings.printOrientation = BRLMPrintSettingsOrientationPortrait;
+            NSLog(@"Portrait is enabled");
+        } else if([options[@"printOrientation"] isEqualToString:@"Landscape"]) {
+            qlSettings.printOrientation = BRLMPrintSettingsOrientationLandscape;
+            NSLog(@"Landscape is enabled");
+        } else {
+            NSLog(@"Automatic orientation is enabled");
+        }
+    }
 
     NSURL *url = [NSURL URLWithString:imageStr];
     BRLMPrintError *printError = [printerDriver printImageWithURL:url settings:qlSettings];
@@ -226,26 +225,13 @@ RCT_REMAP_METHOD(printImage, deviceInfo:(NSDictionary *)device printerUri: (NSSt
     if (printError.code != BRLMPrintErrorCodeNoError) {
         NSLog(@"Error - Print Image: %@", printError);
 
-        NSString *errorCodeString = [NSString stringWithFormat:@"Error code: %ld", (long)printError.code];
-        NSString *errorDescription = [NSString stringWithFormat:@"%@ - %@", errorCodeString, printError.description];
-
-        NSDictionary *userInfo = @{
-            NSLocalizedDescriptionKey: errorDescription,
-            @"errorCode": @(printError.code),
-        };
-
-        NSError *error = [NSError errorWithDomain:@"com.react-native-brother-printers.rn"
-                                            code:printError.code
-                                        userInfo:userInfo];
+        NSError* error = [NSError errorWithDomain:@"com.react-native-brother-printers.rn" code:1 userInfo:[NSDictionary dictionaryWithObject:printError.description forKey:NSLocalizedDescriptionKey]];
 
         [printerDriver closeChannel]; // Close the channel
-
         reject(PRINT_ERROR, @"There was an error trying to print the image", error);
     } else {
-        NSLog(@"Success - Print Image");
-
+        NSLog(@"Success - Print image");
         [printerDriver closeChannel]; // Close the channel
-
         resolve(Nil);
     }
 }
@@ -273,14 +259,18 @@ RCT_REMAP_METHOD(printPdf, deviceInfo:(NSDictionary *)device printerUri: (NSStri
         qlSettings.labelSize = [options[@"labelSize"] intValue];
     }
 
-    qlSettings.autoCut = options[@"autoCut"] ? [options[@"autoCut"] boolValue] : YES;
-    qlSettings.resolution = BRLMPrintSettingsResolutionHigh;
-    if (qlSettings.labelSize == BRLMQLPrintSettingsLabelSizeRollW62RB) {
-        qlSettings.biColorRedEnhancement = 10;
+    if (options[@"skipStatusCheck"]) {
+        qlSettings.skipStatusCheck = [options[@"skipStatusCheck"] boolValue];
     }
 
+    qlSettings.autoCut = options[@"autoCut"] ? [options[@"autoCut"] boolValue] : YES;
+
     qlSettings.halftone = BRLMPrintSettingsHalftonePatternDither;
-    qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
+    if (qlSettings.labelSize == BRLMQLPrintSettingsLabelSizeRollW62RB) {
+        qlSettings.resolution = BRLMPrintSettingsResolutionHigh;
+        qlSettings.printQuality = BRLMPrintSettingsPrintQualityBest;
+        qlSettings.biColorRedEnhancement = 10;
+    }
 
     // printOrientation
     if (options[@"printOrientation"]) {
