@@ -128,45 +128,52 @@ RCT_REMAP_METHOD(pingPrinter, printerAddress:(NSString *)deviceInfo:(NSDictionar
 
 RCT_REMAP_METHOD(getPrinterStatus, deviceInfo:(NSDictionary *)device resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-    NSLog(@"Called the getPrinterStatus function");
+    @try {
+        NSLog(@"Called the getPrinterStatus function");
 
-    BRLMChannel *channel = [self fetchCurrentChannelWithPrinterInfo:device];
+        BRLMChannel *channel = [self fetchCurrentChannelWithPrinterInfo:device];
 
-    BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
-    if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
-        driverGenerateResult.driver == nil) {
-        NSLog(@"%@", @(driverGenerateResult.error.code));
-        return;
+        BRLMPrinterDriverGenerateResult *driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
+        if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
+            driverGenerateResult.driver == nil) {
+            NSLog(@"%@", @(driverGenerateResult.error.code));
+            NSString *errorCodeString = [NSString stringWithFormat:@"%@", @(driverGenerateResult.error.code)];
+            NSError* error = [NSError errorWithDomain:@"com.react-native-brother-printers.rn" code:driverGenerateResult.error.code userInfo:[NSDictionary dictionaryWithObject:errorCodeString forKey:NSLocalizedDescriptionKey]];
+            return reject(STATUS_ERROR, @"There was an error trying to open the channel", error);
+        }
+
+        BRLMPrinterDriver *printerDriver = driverGenerateResult.driver;
+        BRLMGetPrinterStatusResult *status = [printerDriver getPrinterStatus];
+
+        if (status.error.code != BRLMGetStatusErrorCodeNoError) {
+            NSLog(@"Error - getPrinterStatus: %@", status.error);
+
+            NSString *errorCodeString = [NSString stringWithFormat:@"Error code: %ld", (long)status.error.code];
+            NSString *errorDescription = [NSString stringWithFormat:@"%@ - %@", errorCodeString, status.error.description];
+
+            NSDictionary *userInfo = @{
+                NSLocalizedDescriptionKey: errorDescription,
+                @"errorCode": @(status.error.code),
+            };
+
+            NSError *error = [NSError errorWithDomain:@"com.react-native-brother-printers.rn"
+                                                code:status.error.code
+                                            userInfo:userInfo];
+
+            [printerDriver closeChannel]; // Close the channel
+
+            return reject(STATUS_ERROR, @"There was an error trying to get status", error);
+        } else {
+            [printerDriver closeChannel];
+            resolve([self serializeDeviceStatus: status.status]);
+        }
     }
-
-    BRLMPrinterDriver *printerDriver = driverGenerateResult.driver;
-    BRLMGetPrinterStatusResult *status = [printerDriver getPrinterStatus];
-
-    if (status.error.code != BRLMGetStatusErrorCodeNoError) {
-
-        NSLog(@"Error - getPrinterStatus: %@", status.error);
-
-        NSString *errorCodeString = [NSString stringWithFormat:@"Error code: %ld", (long)status.error.code];
-        NSString *errorDescription = [NSString stringWithFormat:@"%@ - %@", errorCodeString, status.error.description];
-
-        NSDictionary *userInfo = @{
-            NSLocalizedDescriptionKey: errorDescription,
-            @"errorCode": @(status.error.code),
-        };
-
+    @catch (NSException *exception) {
+        NSLog(@"Exception - getPrinterStatus: %@", exception);
         NSError *error = [NSError errorWithDomain:@"com.react-native-brother-printers.rn"
-                                            code:status.error.code
-                                        userInfo:userInfo];
-
-        [printerDriver closeChannel]; // Close the channel
-
-        reject(STATUS_ERROR, @"There was an error trying to get status", error);
-
-
-
-    } else {
-        [printerDriver closeChannel];
-        resolve([self serializeDeviceStatus: status.status]);
+                                             code:0
+                                         userInfo:@{NSLocalizedDescriptionKey: exception.reason}];
+        reject(STATUS_ERROR, @"An exception occurred while trying to get status", error);
     }
 }
 
